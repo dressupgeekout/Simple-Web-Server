@@ -188,6 +188,18 @@ namespace SimpleWeb {
       /// This is useful when implementing a HTTP/1.0-server sending content
       /// without specifying the content length.
       bool close_connection_after_response = false;
+
+      /// Checks if the connection close handler is set.
+      bool on_connection_close() {
+        LockGuard lock(session->connection->on_close_mutex);
+        return static_cast<bool>(session->connection->on_close);
+      }
+
+      /// Sets the connection close handler.
+      void on_connection_close(std::function<void()> callback) {
+        LockGuard lock(session->connection->on_close_mutex);
+        session->connection->on_close = std::move(callback);
+      }
     };
 
     class Content : public std::istream {
@@ -283,13 +295,22 @@ namespace SimpleWeb {
     class Connection : public std::enable_shared_from_this<Connection> {
     public:
       template <typename... Args>
-      Connection(std::shared_ptr<ScopeRunner> handler_runner_, Args &&... args) noexcept : handler_runner(std::move(handler_runner_)), socket(new socket_type(std::forward<Args>(args)...)) {}
+      Connection(std::shared_ptr<ScopeRunner> handler_runner_, Args &&...args) noexcept : handler_runner(std::move(handler_runner_)), socket(new socket_type(std::forward<Args>(args)...)) {}
+
+      ~Connection() {
+        if(on_close)
+          on_close();
+      }
 
       std::shared_ptr<ScopeRunner> handler_runner;
 
       std::unique_ptr<socket_type> socket; // Socket must be unique_ptr since asio::ssl::stream<asio::ip::tcp::socket> is not movable
 
       std::unique_ptr<asio::steady_timer> timer;
+
+      Mutex on_close_mutex;
+      /// Called when instance is being destructed
+      std::function<void()> on_close GUARDED_BY(on_close_mutex);
 
       void close() noexcept {
         error_code ec;
@@ -517,7 +538,7 @@ namespace SimpleWeb {
     virtual void accept() = 0;
 
     template <typename... Args>
-    std::shared_ptr<Connection> create_connection(Args &&... args) noexcept {
+    std::shared_ptr<Connection> create_connection(Args &&...args) noexcept {
       auto connections = this->connections;
       auto connection = std::shared_ptr<Connection>(new Connection(handler_runner, std::forward<Args>(args)...), [connections](Connection *connection) {
         {
