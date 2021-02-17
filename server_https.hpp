@@ -61,6 +61,9 @@ namespace SimpleWeb {
         if(!lock)
           return;
 
+        if(on_connection_open)
+          on_connection_open(connection.get());
+
         if(ec != error::operation_aborted)
           this->accept();
 

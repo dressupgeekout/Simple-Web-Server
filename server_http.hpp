@@ -188,6 +188,11 @@ namespace SimpleWeb {
       /// This is useful when implementing a HTTP/1.0-server sending content
       /// without specifying the content length.
       bool close_connection_after_response = false;
+
+      /// Retrieve connection pointer that can be used to find corresponding connection from on_connection_open and on_connection_close.
+      void *connection() {
+        return session->connection.get();
+      }
     };
 
     class Content : public std::istream {
@@ -388,6 +393,11 @@ namespace SimpleWeb {
     /// Called on upgrade requests.
     std::function<void(std::unique_ptr<socket_type> &, std::shared_ptr<typename ServerBase<socket_type>::Request>)> on_upgrade;
 
+    /// Called on new connection
+    std::function<void(void *Connection)> on_connection_open;
+    /// Called on connection close
+    std::function<void(void *Connection)> on_connection_close;
+
     /// If you want to reuse an already created asio::io_service, store its pointer here before calling start().
     std::shared_ptr<io_context> io_service;
 
@@ -518,13 +528,14 @@ namespace SimpleWeb {
 
     template <typename... Args>
     std::shared_ptr<Connection> create_connection(Args &&...args) noexcept {
-      auto connections = this->connections;
-      auto connection = std::shared_ptr<Connection>(new Connection(handler_runner, std::forward<Args>(args)...), [connections](Connection *connection) {
-        {
+      auto connection = std::shared_ptr<Connection>(new Connection(handler_runner, std::forward<Args>(args)...), [this](Connection *connection) {
+        if(auto continue_lock = connection->handler_runner->continue_lock()) {
           LockGuard lock(connections->mutex);
           auto it = connections->set.find(connection);
           if(it != connections->set.end())
             connections->set.erase(it);
+          if(on_connection_close)
+            on_connection_close(connection);
         }
         delete connection;
       });
@@ -803,6 +814,9 @@ namespace SimpleWeb {
         auto lock = connection->handler_runner->continue_lock();
         if(!lock)
           return;
+
+        if(on_connection_open)
+          on_connection_open(connection.get());
 
         // Immediately start accepting a new connection (unless io_service has been stopped)
         if(ec != error::operation_aborted)
