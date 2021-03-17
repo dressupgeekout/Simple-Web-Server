@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.13...3.20)
 
 project (Simple-Web-Server LANGUAGES CXX)
 
-option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" ON)
+option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" OFF)
 option(USE_OPENSSL "set OFF to build without OpenSSL" ON)
 
 if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -10,7 +10,7 @@ if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 option(BUILD_TESTING "set ON to build library tests" ${MASTER_PROJECT})
-option(BUILD_FUZZING "set ON to build library fuzzers" ${MASTER_PROJECT})
+option(BUILD_FUZZING "set ON to build library fuzzers" OFF)
 
 add_library(simple-web-server INTERFACE)
 
