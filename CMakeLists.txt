@@ -1,15 +1,16 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required (VERSION 3.13...3.20)
 
-project(Simple-Web-Server)
+project (Simple-Web-Server LANGUAGES CXX)
 
-option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" OFF)
-if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-    option(BUILD_TESTING "set ON to build library tests" ON)
-else()
-    option(BUILD_TESTING "set ON to build library tests" OFF)
-endif()
-option(BUILD_FUZZING "set ON to build library fuzzers" OFF)
+option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" ON)
 option(USE_OPENSSL "set OFF to build without OpenSSL" ON)
+
+if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(MASTER_PROJECT ON)
+endif()
+
+option(BUILD_TESTING "set ON to build library tests" ${MASTER_PROJECT})
+option(BUILD_FUZZING "set ON to build library fuzzers" ${MASTER_PROJECT})
 
 add_library(simple-web-server INTERFACE)
 
@@ -21,17 +22,19 @@ target_link_libraries(simple-web-server INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 # TODO 2020 when Debian Jessie LTS ends:
 # Remove Boost system, thread, regex components; use Boost::<component> aliases; remove Boost target_include_directories
 if(USE_STANDALONE_ASIO)
-    target_compile_definitions(simple-web-server INTERFACE USE_STANDALONE_ASIO)
+    target_compile_definitions(simple-web-server INTERFACE USE_STANDALONE_ASIO ASIO_NO_DEPRECATED)
     find_path(ASIO_PATH asio.hpp)
     if(NOT ASIO_PATH)
         message(FATAL_ERROR "Standalone Asio not found")
     else()
-        target_include_directories(simple-web-server INTERFACE ${ASIO_PATH})
+        message(STATUS "Found Standalone Asio: ${ASIO_PATH}")
+        target_include_directories(simple-web-server SYSTEM INTERFACE ${ASIO_PATH})
     endif()
 else()
     find_package(Boost 1.53.0 COMPONENTS system thread REQUIRED)
     target_link_libraries(simple-web-server INTERFACE ${Boost_LIBRARIES})
     target_include_directories(simple-web-server INTERFACE ${Boost_INCLUDE_DIR})
+    target_compile_definitions(simple-web-server INTERFACE BOOST_ASIO_NO_DEPRECATED)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
         target_compile_definitions(simple-web-server INTERFACE USE_BOOST_REGEX)
         find_package(Boost 1.53.0 COMPONENTS regex REQUIRED)
