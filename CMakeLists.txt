@@ -19,10 +19,10 @@ target_include_directories(simple-web-server INTERFACE ${CMAKE_CURRENT_SOURCE_DI
 find_package(Threads REQUIRED)
 target_link_libraries(simple-web-server INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 
-# TODO 2020 when Debian Jessie LTS ends:
+# TODO 2020 when Debian Jessie LTS ends: NOTE: the time is over! CK
 # Remove Boost system, thread, regex components; use Boost::<component> aliases; remove Boost target_include_directories
 if(USE_STANDALONE_ASIO)
-    target_compile_definitions(simple-web-server INTERFACE USE_STANDALONE_ASIO ASIO_NO_DEPRECATED)
+    target_compile_definitions(simple-web-server INTERFACE USE_STANDALONE_ASIO TODO_ASIO_NO_DEPRECATED)
     find_path(ASIO_PATH asio.hpp)
     if(NOT ASIO_PATH)
         message(FATAL_ERROR "Standalone Asio not found")
