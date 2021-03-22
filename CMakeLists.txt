@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0...3.20)
 
-project(Simple-Web-Server LANGUAGES CXX)
+project(Simple-Web-Server LANGUAGES CXX C)
 
 option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" OFF)
 
@@ -34,7 +34,7 @@ else()
     find_package(Boost 1.53.0 COMPONENTS system thread REQUIRED)
     target_link_libraries(simple-web-server INTERFACE ${Boost_LIBRARIES})
     target_include_directories(simple-web-server INTERFACE ${Boost_INCLUDE_DIR})
-    target_compile_definitions(simple-web-server INTERFACE BOOST_ASIO_NO_DEPRECATED)
+    # FIXME target_compile_definitions(simple-web-server INTERFACE BOOST_ASIO_NO_DEPRECATED) CK!
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
         target_compile_definitions(simple-web-server INTERFACE USE_BOOST_REGEX)
         find_package(Boost 1.53.0 COMPONENTS regex REQUIRED)
