@@ -65,7 +65,7 @@ brew install openssl boost
 
 Compile with a C++11 compliant compiler:
 ```sh
-cmake -H. -Bbuild
+cmake -H. -Bbuild -DUSE_STANDALONE_ASIO=ON -DUSE_OPENSSL=OFF -DASIO_PATH=<path of ASIO library; example E:\net\ext\asio-1.18.1>
 cmake --build build
 ```
 
