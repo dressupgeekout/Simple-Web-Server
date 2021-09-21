@@ -2,10 +2,10 @@ from conans import ConanFile, CMake, tools
 
 class SimpleWebServerConan(ConanFile):
     name = "Simple-Web-Server"
-    version = "2.2.0"
-    license = "MIT"
+    version = "3.1.1"
+    license = "https://gitlab.com/eidheim/Simple-Web-Server/-/blob/master/LICENSE"
     author = "Ole Christian Eidheim"
-    url = "git@gitlab.com:eidheim/Simple-Web-Server.git"
+    url = "https://gitlab.com/eidheim/Simple-Web-Server"
     description = "A very simple, fast, multithreaded, platform independent HTTP and HTTPS server and client library implemented using C++11 and Boost.Asio. Created to be an easy way to make REST resources available from C++ applications."
     options = {"openssl": [True, False]}
     default_options = {"openssl": True}
