@@ -78,15 +78,15 @@ if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 
     install(FILES asio_compatibility.hpp server_http.hpp client_http.hpp server_https.hpp client_https.hpp crypto.hpp utility.hpp status_code.hpp mutex.hpp DESTINATION include/simple-web-server)
 
-    install(TARGETS simple-web-server EXPORT "${PROJECT_NAME}Targets")
-    install(EXPORT "${PROJECT_NAME}Targets"
-        DESTINATION "share/${PROJECT_NAME}"
-        NAMESPACE "${PROJECT_NAME}::")
-
     configure_file("cmake/${PROJECT_NAME}Config.cmake.in"
         "${PROJECT_NAME}Config.cmake" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-        DESTINATION "share/${PROJECT_NAME}")
+        DESTINATION share/simple-web-server)
+
+    install(TARGETS simple-web-server EXPORT "${PROJECT_NAME}Targets")
+    install(EXPORT "${PROJECT_NAME}Targets"
+        DESTINATION share/simple-web-server
+        NAMESPACE "${PROJECT_NAME}::")
 endif()
 
 if(BUILD_TESTING OR BUILD_FUZZING)
