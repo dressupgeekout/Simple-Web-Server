@@ -84,7 +84,7 @@ if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
         NAMESPACE "${PROJECT_NAME}::")
 
     configure_file("cmake/${PROJECT_NAME}Config.cmake.in"
-        "${PROJECT_NAME}Config.cmake")
+        "${PROJECT_NAME}Config.cmake" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
         DESTINATION "share/${PROJECT_NAME}")
 endif()
