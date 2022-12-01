@@ -403,6 +403,9 @@ namespace SimpleWeb {
     /// If the request path does not match a resource regex, this function is called.
     std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>> default_resource;
 
+    /// If the request method does not match any of the above resources, this function is called.
+    std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)> fallback_resource;
+
     /// Called when an error occurs.
     std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Request>, const error_code &)> on_error;
 
@@ -759,8 +762,12 @@ namespace SimpleWeb {
         }
       }
       auto it = default_resource.find(session->request->method);
-      if(it != default_resource.end())
+      if(it != default_resource.end()) {
         write(session, it->second);
+      }
+      else if(fallback_resource) {
+        write(session, fallback_resource);
+      }
     }
 
     void write(const std::shared_ptr<Session> &session,
