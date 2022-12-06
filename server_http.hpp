@@ -27,10 +27,12 @@ namespace SimpleWeb {
 #endif
 
 namespace SimpleWeb {
-  template <class socket_type>
+  class EBO_Empty {};
+
+  template <class socket_type, class EBO_class = EBO_Empty>
   class Server;
 
-  template <class socket_type>
+  template <class socket_type, class EBO_class>
   class ServerBase {
   protected:
     class Connection;
@@ -39,8 +41,8 @@ namespace SimpleWeb {
   public:
     /// Response class where the content of the response is sent to client when the object is about to be destroyed.
     class Response : public std::enable_shared_from_this<Response>, public std::ostream {
-      friend class ServerBase<socket_type>;
-      friend class Server<socket_type>;
+      friend class ServerBase<socket_type, EBO_class>;
+      friend class Server<socket_type, EBO_class>;
 
       std::unique_ptr<asio::streambuf> streambuf = std::unique_ptr<asio::streambuf>(new asio::streambuf());
 
@@ -203,10 +205,15 @@ namespace SimpleWeb {
       /// This is useful when implementing a HTTP/1.0-server sending content
       /// without specifying the content length.
       bool close_connection_after_response = false;
+
+      /// Returns reference to connection's user data
+      EBO_class& get_user_data() {
+        return *(session->connection);
+      }
     };
 
     class Content : public std::istream {
-      friend class ServerBase<socket_type>;
+      friend class ServerBase<socket_type, EBO_class>;
 
     public:
       std::size_t size() noexcept {
@@ -223,8 +230,8 @@ namespace SimpleWeb {
     };
 
     class Request {
-      friend class ServerBase<socket_type>;
-      friend class Server<socket_type>;
+      friend class ServerBase<socket_type, EBO_class>;
+      friend class Server<socket_type, EBO_class>;
       friend class Session;
 
       asio::streambuf streambuf;
@@ -295,7 +302,7 @@ namespace SimpleWeb {
     };
 
   protected:
-    class Connection : public std::enable_shared_from_this<Connection> {
+     class Connection : public std::enable_shared_from_this<Connection>, public EBO_class {
     public:
       template <typename... Args>
       Connection(std::shared_ptr<ScopeRunner> handler_runner_, Args &&...args) noexcept : handler_runner(std::move(handler_runner_)), socket(new socket_type(std::forward<Args>(args)...)), write_strand(get_executor(socket->lowest_layer())) {}
@@ -355,7 +362,7 @@ namespace SimpleWeb {
 
   public:
     class Config {
-      friend class ServerBase<socket_type>;
+      friend class ServerBase<socket_type, EBO_class>;
 
       Config(unsigned short port) noexcept : port(port) {}
 
@@ -398,16 +405,16 @@ namespace SimpleWeb {
   public:
     /// Use this container to add resources for specific request paths depending on the given regex and method.
     /// Warning: do not add or remove resources after start() is called
-    std::map<regex_orderable, std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>>> resource;
+    std::map<regex_orderable, std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Response>, std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Request>)>>> resource;
 
     /// If the request path does not match a resource regex, this function is called.
-    std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>> default_resource;
+    std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Response>, std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Request>)>> default_resource;
 
     /// Called when an error occurs.
-    std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Request>, const error_code &)> on_error;
+    std::function<void(std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Request>, const error_code &)> on_error;
 
     /// Called on upgrade requests.
-    std::function<void(std::unique_ptr<socket_type> &, std::shared_ptr<typename ServerBase<socket_type>::Request>)> on_upgrade;
+    std::function<void(std::unique_ptr<socket_type> &, std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Request>)> on_upgrade;
 
     /// If you want to reuse an already created asio::io_service, store its pointer here before calling start().
     std::shared_ptr<io_context> io_service;
@@ -764,7 +771,7 @@ namespace SimpleWeb {
     }
 
     void write(const std::shared_ptr<Session> &session,
-               std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)> &resource_function) {
+               std::function<void(std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Response>, std::shared_ptr<typename ServerBase<socket_type, EBO_class>::Request>)> &resource_function) {
       auto response = std::shared_ptr<Response>(new Response(session, config.timeout_content), [this](Response *response_ptr) {
         auto response = std::shared_ptr<Response>(response_ptr);
         response->send_on_delete([this, response](const error_code &ec) {
@@ -805,16 +812,16 @@ namespace SimpleWeb {
     }
   };
 
-  template <class socket_type>
-  class Server : public ServerBase<socket_type> {};
+  template <class socket_type, class EBO_class>
+  class Server : public ServerBase<socket_type, EBO_class> {};
 
   using HTTP = asio::ip::tcp::socket;
 
-  template <>
-  class Server<HTTP> : public ServerBase<HTTP> {
+  template <class EBO_class>
+  class Server<HTTP, EBO_class> : public ServerBase<HTTP, EBO_class> {
   public:
     /// Constructs a server object.
-    Server() noexcept : ServerBase<HTTP>::ServerBase(80) {}
+    Server() noexcept : ServerBase<HTTP, EBO_class>::ServerBase(80) {}
 
   protected:
     void accept() override {
